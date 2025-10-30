@@ -6,21 +6,15 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Método não permitido' });
   }
-  
-  // 2. LOGIN REMOVIDO!
 
-  // Conecta ao banco
+  // 2. Conecta ao banco
   await connectToDatabase();
 
-  // 3. Inicia a Transação (a parte "robusta")
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
+  // 3. TRANSAÇÃO REMOVIDA PARA FUNCIONAR NO M0
   try {
-    // 4. RECEBE O PREÇO
     const { nomeItem, quantidade, tipo, precoUnitario } = req.body; 
     const qtd = Number(quantidade);
-    const preco = Number(precoUnitario) || 0; // Valida o preço
+    const preco = Number(precoUnitario) || 0;
 
     // Validação
     if (isNaN(qtd) || qtd <= 0) throw new Error('Quantidade inválida.');
@@ -29,28 +23,27 @@ export default async function handler(req, res) {
 
     const nomeLimpo = nomeItem.trim();
     const nomeLowerCase = nomeLimpo.toLowerCase();
-    let precoTotal = qtd * preco; // <-- CÁLCULO NOVO
+    let precoTotal = qtd * preco;
 
-    // 5. Encontra o item DENTRO da transação
-    let item = await Item.findOne({ nomeLowerCase: nomeLowerCase }).session(session);
+    // 4. Encontra o item
+    let item = await Item.findOne({ nomeLowerCase: nomeLowerCase });
 
     let estoqueAnterior = 0;
     let estoqueNovo = 0;
 
-    // 6. Lógica de Estoque
+    // 5. Lógica de Estoque
     if (tipo === 'entrada') {
       if (!item) {
-        // Se o item é novo, cria ele
         item = new Item({
           nome: nomeLimpo,
           nomeLowerCase: nomeLowerCase,
           estoqueAtual: 0,
-          estoqueMinimo: 5, // Padrão
+          estoqueMinimo: 5,
         });
       }
       estoqueAnterior = item.estoqueAtual;
       estoqueNovo = estoqueAnterior + qtd;
-      item.precoCusto = preco; // <-- ATUALIZA O PREÇO DE CUSTO DO ITEM
+      item.precoCusto = preco; 
     
     } else {
       // Lógica de Saída
@@ -63,40 +56,33 @@ export default async function handler(req, res) {
       estoqueNovo = estoqueAnterior - qtd;
     }
 
-    // 7. Atualiza o estoque do item
+    // 6. Atualiza o estoque do item (Etapa 1)
     item.estoqueAtual = estoqueNovo;
     item.ultimaModificacao = new Date();
-    await item.save({ session });
+    await item.save(); // Salva o item
 
-    // 8. Salva o registro no histórico COM PREÇOS
+    // 7. Salva o registro no histórico (Etapa 2)
     const movimentacao = new Movimentacao({
       tipo,
       nomeItem: nomeLimpo,
       quantidade: qtd,
-      precoUnitario: preco, // <-- NOVO
-      precoTotal: precoTotal, // <-- NOVO
+      precoUnitario: preco,
+      precoTotal: precoTotal,
       data: new Date(),
       estoqueAnterior,
       estoqueNovo,
     });
-    await movimentacao.save({ session });
+    await movimentacao.save(); // Salva o histórico
 
-    // 9. COMITA A TRANSAÇÃO (Confirma tudo no banco)
-    await session.commitTransaction();
-
-    // 10. Sucesso!
+    // 8. Sucesso!
     res.status(200).json({ 
       status: 'success', 
       message: `Movimentação registrada! Novo estoque: ${estoqueNovo}` 
     });
 
   } catch (error) {
-    // 11. Erro! Desfaz tudo.
-    await session.abortTransaction();
-    console.error('Falha na Transação:', error);
+    // 9. Erro!
+    console.error('Falha na operação:', error);
     res.status(400).json({ message: error.message });
-  } finally {
-    // 12. Encerra a sessão
-    session.endSession();
   }
 }
