@@ -1,0 +1,321 @@
+/* =============================================================
+   DESIGN "ELITE" - DARK MODE
+   ============================================================= */
+
+/* Reset e Fontes */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #121212; /* Fundo dark principal */
+    color: #e0e0e0;
+    line-height: 1.6;
+    padding-top: 80px; /* Espaço para o header fixo */
+}
+
+/* Header Fixo */
+.header {
+    background-color: #1e1e1e;
+    border-bottom: 1px solid #2a2a2a;
+    padding: 0 30px;
+    height: 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+/* --- O CSS da sua LOGO --- */
+.logo-container {
+    height: 50px; /* Altura fixa para o container da logo */
+    width: 150px; /* Largura fixa */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.logo-container img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain; /* Esta é a mágica! */
+    /* Sua logo de qualquer tamanho vai caber aqui sem distorcer */
+}
+/* --- Fim do CSS da Logo --- */
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+/* Layout Principal */
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    padding: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.col-pdv {
+    flex: 1;
+    min-width: 400px;
+}
+.col-dashboard {
+    flex: 2;
+    min-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* Estilo de Card Padrão */
+.card {
+    background-color: #1e1e1e;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.card h2 {
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.card h2 .icon {
+    font-size: 1.5rem;
+}
+
+/* Formulário */
+.input-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+.input-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #bbb;
+    font-size: 0.9rem;
+}
+.input-group input[type="text"],
+.input-group input[type="number"],
+.input-group input[type="date"] {
+    width: 100%;
+    padding: 14px;
+    background-color: #2b2b2b;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-group input:focus {
+    outline: none;
+    border-color: #388e3c; /* Verde */
+    box-shadow: 0 0 0 3px rgba(56, 142, 60, 0.3);
+}
+
+/* Botões de Ação */
+.botoes-acao {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+.btn {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Cores de Entrada/Saída */
+.btn.entrada {
+    background-color: #388e3c; /* Verde Escuro */
+    box-shadow: 0 4px 15px rgba(56, 142, 60, 0.2);
+}
+.btn.entrada:hover { background-color: #4CAF50; }
+
+.btn.saida {
+    background-color: #d32f2f; /* Vermelho Escuro */
+    box-shadow: 0 4px 15px rgba(211, 47, 47, 0.2);
+}
+.btn.saida:hover { background-color: #f44336; }
+
+.btn-logout {
+    background-color: #555;
+    flex: 0;
+    padding: 8px 15px;
+}
+.btn-logout:hover { background-color: #666; }
+
+/* Status de Feedback (Sucesso/Erro) */
+#status-container {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+}
+#status-container.success {
+    background-color: rgba(56, 142, 60, 0.2);
+    color: #81c784;
+    border: 1px solid #388e3c;
+}
+#status-container.error {
+    background-color: rgba(211, 47, 47, 0.2);
+    color: #ef9a9a;
+    border: 1px solid #d32f2f;
+}
+.hidden { display: none; }
+
+/* Autocomplete (A Mágica) */
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #2b2b2b;
+    border: 1px solid #333;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    z-index: 100;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.sugestao-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+}
+.sugestao-item:hover {
+    background-color: #388e3c;
+    color: #ffffff;
+}
+.sugestao-item span:first-child {
+    font-weight: 600;
+}
+.sugestao-item span:last-child {
+    color: #aaa;
+    font-size: 0.9rem;
+}
+.sugestao-item:hover span:last-child {
+    color: #e0e0e0;
+}
+
+/* Dashboard: Alertas e Histórico */
+.loading-placeholder {
+    color: #777;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Alertas */
+.alerta-item {
+    padding: 15px;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #ef9a9a; /* Vermelho claro para alerta */
+    font-weight: 500;
+}
+.alerta-item:last-child { border: none; }
+.alerta-item .estoque {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #f44336; /* Vermelho vivo */
+}
+#dashboard-alertas .sem-alerta {
+    color: #81c784; /* Verde */
+    font-weight: 500;
+    text-align: center;
+    padding: 20px;
+}
+
+
+/* Histórico */
+.historico-item {
+    padding: 15px;
+    border-bottom: 1px solid #2a2a2a;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 20px;
+    align-items: center;
+    font-size: 0.95rem;
+}
+.historico-item:last-child { border: none; }
+.historico-item .nome { font-weight: 500; color: #fff; }
+.historico-item .data { color: #888; font-size: 0.85rem; grid-column: 1; }
+
+.historico-item .qtd {
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-align: right;
+}
+/* Cores Verde/Vermelho no Histórico */
+.historico-item.entrada .qtd {
+    color: #81c784;
+    background-color: rgba(56, 142, 60, 0.2);
+}
+.historico-item.saida .qtd {
+    color: #ef9a9a;
+    background-color: rgba(211, 47, 47, 0.2);
+}
+.historico-item .estoque-audit {
+    color: #aaa;
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+/* Busca por Dia */
+.busca-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 20px;
+}
+.busca-container input {
+    flex: 1;
+}
+.btn-busca {
+    flex: 0.5;
+    background-color: #0277bd; /* Azul */
+}
+#busca-resultados {
+    margin-top: 20px;
+}
+#busca-resultados h3 {
+    color: #0277bd;
+    margin-bottom: 10px;
+}

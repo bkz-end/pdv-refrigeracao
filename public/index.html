@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Gestão de Estoque</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo-container">
+            <img src="logo.png" alt="Logo da Empresa">
+        </div>
+        <div class="user-info">
+            <span id="user-email"></span>
+            <button id="btn-logout" class="btn btn-logout">Sair</button>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="col-pdv card">
+            <h2><span class="icon">⚡</span> Registrar Movimentação</h2>
+            <form id="form-movimentacao">
+                
+                <div class="input-group autocomplete-container">
+                    <label for="nome-item">Nome do Item</label>
+                    <input type="text" id="nome-item" placeholder="Digite para buscar (ex: Gás R22)..." required>
+                    <div id="autocomplete-sugestoes" class="autocomplete-dropdown"></div>
+                </div>
+
+                <div class="input-group">
+                    <label for="quantidade">Quantidade</label>
+                    <input type="number" id="quantidade" value="1" min="1" required>
+                </div>
+                
+                <div class="botoes-acao">
+                    <button type="submit" id="btn-entrada" class="btn entrada">
+                        Registrar ENTRADA
+                    </button>
+                    <button type="submit" id="btn-saida" class="btn saida">
+                        Registrar SAÍDA
+                    </button>
+                </div>
+            </form>
+            <div id="status-container" class="hidden"></div>
+        </section>
+
+        <section class="col-dashboard">
+            <div class="card card-alert">
+                <h2><span class="icon">⚠️</span> Alerta: Estoque Baixo</h2>
+                <div id="dashboard-alertas">
+                    <p class="loading-placeholder">Carregando alertas...</p>
+                    </div>
+            </div>
+
+            <div class="card card-historico">
+                <h2><span class="icon">📋</span> Últimas Movimentações</h2>
+                <div class="busca-container">
+                    <label for="busca-data">Buscar por dia:</label>
+                    <input type="date" id="busca-data">
+                    <button id="btn-buscar" class="btn btn-busca">Buscar</button>
+                </div>
+                <div id="dashboard-historico">
+                    <p class="loading-placeholder">Carregando histórico...</p>
+                    </div>
+                
+                <div id="busca-resultados" class="hidden">
+                    <h3>Resultados da Busca</h3>
+                    <div id="busca-resultados-lista"></div>
+                    <button id="btn-limpar-busca" class="btn">Limpar Busca</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="/__/firebase/8.10.0/firebase-app.js"></script>
+    <script src="/__/firebase/8.10.0/firebase-auth.js"></script>
+    <script src="/__/firebase/8.10.0/firebase-firestore.js"></script>
+    <script src="/__/firebase/8.10.0/firebase-functions.js"></script>
+    <script src="/__/firebase/init.js"></script>
+    
+    <script src="app.js"></script>
+</body>
+</html>
