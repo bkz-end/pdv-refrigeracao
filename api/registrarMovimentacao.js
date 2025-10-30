@@ -1,19 +1,13 @@
 import mongoose from 'mongoose';
 import { connectToDatabase, Item, Movimentacao } from './_db.js';
-import { verificarLogin } from './_firebaseAdmin.js';
 
 export default async function handler(req, res) {
   // 1. Apenas aceita requisições POST
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Método não permitido' });
   }
-
-  // 2. Verifica se o usuário é o Admin (Segurança "Elite")
-  try {
-    await verificarLogin(req);
-  } catch (error) {
-    return res.status(401).json({ message: 'Acesso negado: ' + error.message });
-  }
+  
+  // 2. LOGIN REMOVIDO!
 
   // Conecta ao banco
   await connectToDatabase();
@@ -23,7 +17,7 @@ export default async function handler(req, res) {
   session.startTransaction();
 
   try {
-    // 4. AGORA RECEBEMOS O PREÇO
+    // 4. RECEBE O PREÇO
     const { nomeItem, quantidade, tipo, precoUnitario } = req.body; 
     const qtd = Number(quantidade);
     const preco = Number(precoUnitario) || 0; // Valida o preço
@@ -67,7 +61,6 @@ export default async function handler(req, res) {
       }
       estoqueAnterior = item.estoqueAtual;
       estoqueNovo = estoqueAnterior - qtd;
-      // Nota: o precoTotal da saída é calculado com o preço que o usuário digitou
     }
 
     // 7. Atualiza o estoque do item

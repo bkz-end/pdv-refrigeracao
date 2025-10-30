@@ -13,8 +13,7 @@
             <img src="logo.png" alt="Logo da Empresa">
         </div>
         <div class="user-info">
-            <span id="user-email"></span>
-            <button id="btn-logout" class="btn btn-logout">Sair</button>
+            <span>PDV Refrigeração</span>
         </div>
     </header>
 
@@ -34,6 +33,11 @@
                     <label for="quantidade">Quantidade</label>
                     <input type="number" id="quantidade" value="1" min="1" required>
                 </div>
+
+                <div class="input-group">
+                  <label for="preco-unitario">Preço Unitário (R$)</label>
+                  <input type="number" id="preco-unitario" value="0" min="0" step="0.01" required>
+                </div>
                 
                 <div class="botoes-acao">
                     <button type="submit" id="btn-entrada" class="btn entrada">
@@ -52,7 +56,7 @@
                 <h2><span class="icon">⚠️</span> Alerta: Estoque Baixo</h2>
                 <div id="dashboard-alertas">
                     <p class="loading-placeholder">Carregando alertas...</p>
-                    </div>
+                </div>
             </div>
 
             <div class="card card-historico">
@@ -64,7 +68,7 @@
                 </div>
                 <div id="dashboard-historico">
                     <p class="loading-placeholder">Carregando histórico...</p>
-                    </div>
+                </div>
                 
                 <div id="busca-resultados" class="hidden">
                     <h3>Resultados da Busca</h3>
@@ -75,12 +79,6 @@
         </section>
 
     </main>
-
-    <script src="/__/firebase/8.10.0/firebase-app.js"></script>
-    <script src="/__/firebase/8.10.0/firebase-auth.js"></script>
-    <script src="/__/firebase/8.10.0/firebase-firestore.js"></script>
-    <script src="/__/firebase/8.10.0/firebase-functions.js"></script>
-    <script src="/__/firebase/init.js"></script>
     
     <script src="app.js"></script>
 </body>

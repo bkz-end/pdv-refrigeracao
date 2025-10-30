@@ -165,13 +165,6 @@ body {
 }
 .btn.saida:hover { background-color: #f44336; }
 
-.btn-logout {
-    background-color: #555;
-    flex: 0;
-    padding: 8px 15px;
-}
-.btn-logout:hover { background-color: #666; }
-
 /* Status de Feedback (Sucesso/Erro) */
 #status-container {
     margin-top: 20px;
@@ -271,7 +264,7 @@ body {
     padding: 15px;
     border-bottom: 1px solid #2a2a2a;
     display: grid;
-    /* MUDANÇA AQUI: 4 colunas (Item, Qtd, Preço, Auditoria) */
+    /* 4 colunas (Item, Qtd, Preço, Auditoria) */
     grid-template-columns: 1fr auto auto auto; 
     gap: 15px;
     align-items: center;

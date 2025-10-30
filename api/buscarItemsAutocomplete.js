@@ -1,5 +1,4 @@
 import { connectToDatabase, Item } from './_db.js';
-import { verificarLogin } from './_firebaseAdmin.js';
 
 export default async function handler(req, res) {
   // 1. Apenas aceita requisições POST
@@ -7,12 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
   
-  // 2. Verifica se o usuário é o Admin
-  try {
-    await verificarLogin(req);
-  } catch (error) {
-    return res.status(401).json({ message: 'Acesso negado: ' + error.message });
-  }
+  // 2. LOGIN REMOVIDO!
 
   try {
     const { query } = req.body;

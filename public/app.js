@@ -1,10 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- INICIALIZAÇÃO E AUTENTICAÇÃO ---
-    const auth = firebase.auth();
-  
-    // Elementos do DOM
-    const userEmailSpan = document.getElementById('user-email');
-    const btnLogout = document.getElementById('btn-logout');
+    // --- ELEMENTOS DO DOM ---
     const form = document.getElementById('form-movimentacao');
     const nomeItemInput = document.getElementById('nome-item');
     const quantidadeInput = document.getElementById('quantidade');
@@ -21,57 +16,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const buscaResultadosLista = document.getElementById('busca-resultados-lista');
     const btnLimparBusca = document.getElementById('btn-limpar-busca');
   
-    // --- GUARDA DE AUTENTICAÇÃO (CORRIGIDO) ---
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        // Usuário está logado
-        console.log('Admin logado:', user.email);
-        // Se estiver na tela de login, manda para o dashboard
-        if (window.location.pathname.includes('login.html')) {
-          window.location.href = '/index.html';
-        }
-        userEmailSpan.textContent = user.email;
-        iniciarDashboard();
-      } else {
-        // Usuário não está logado
-        console.log('Nenhum usuário logado. Redirecionando...');
-        // Se NÃO estamos no login.html, redireciona para ele
-        if (!window.location.pathname.includes('login.html')) {
-           window.location.href = '/login.html';
-        }
-      }
-    });
+    // --- INICIA O APP ---
+    iniciarDashboard();
   
-    // Logout
-    btnLogout.addEventListener('click', () => {
-      auth.signOut();
-    });
-  
-    // Só roda o dashboard se estivermos no index.html
     function iniciarDashboard() {
-      if(window.location.pathname.includes('login.html')) return;
-      
       carregarDashboardTempoReal(); 
       configurarFormularioPDV();
       configurarAutocomplete();
       configurarBuscaPorDia();
     }
   
-    // --- FUNÇÃO HELPER DE FETCH (ELITE) ---
+    // --- FUNÇÃO HELPER DE FETCH (SUPER SIMPLES) ---
+    // Não precisa mais de token de login!
     async function fetchApi(endpoint, method = 'POST', body = null) {
-      const user = auth.currentUser;
-      if (!user) {
-        mostrarStatus('Usuário não logado.', 'error');
-        throw new Error('Usuário não logado.');
-      }
-  
-      const token = await user.getIdToken();
-  
       const options = {
         method: method,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, 
         },
       };
   
@@ -79,12 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         options.body = JSON.stringify(body);
       }
       
-      let url = endpoint;
-      if (method === 'GET') {
-        url += `?token=${token}`;
-      }
-  
-      const res = await fetch(url, options);
+      const res = await fetch(endpoint, options);
       const data = await res.json();
   
       if (!res.ok) {
@@ -160,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
           try {
-            // O autocomplete agora mostra o preço de custo!
             const resultados = await fetchApi('/api/buscarItemsAutocomplete', 'POST', {
               query: query,
             });
