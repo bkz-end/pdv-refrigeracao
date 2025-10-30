@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- INICIALIZAÇÃO E AUTENTICAÇÃO (Firebase Auth continua!) ---
+    // --- INICIALIZAÇÃO E AUTENTICAÇÃO ---
     const auth = firebase.auth();
-    const db = firebase.firestore(); // Ainda precisamos disso para os listeners
+    // const db = firebase.firestore(); // NÃO PRECISAMOS MAIS DO FIRESTORE!
   
     // Elementos do DOM
     const userEmailSpan = document.getElementById('user-email');
@@ -15,8 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const autocompleteDropdown = document.getElementById('autocomplete-sugestoes');
     const dashboardAlertas = document.getElementById('dashboard-alertas');
     const dashboardHistorico = document.getElementById('dashboard-historico');
-  
-    // ... (elementos de busca) ...
     const buscaDataInput = document.getElementById('busca-data');
     const btnBuscar = document.getElementById('btn-buscar');
     const buscaResultados = document.getElementById('busca-resultados');
@@ -41,44 +39,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   
     function iniciarDashboard() {
-      carregarDashboardTempoReal(); // Isso ainda vem do Firestore (ou Mongo)
+      carregarDashboardTempoReal(); // Agora vai ler do MongoDB!
       configurarFormularioPDV();
       configurarAutocomplete();
       configurarBuscaPorDia();
     }
   
     // --- NOVA FUNÇÃO HELPER DE FETCH (ELITE) ---
-    // Esta função vai chamar nossa API na Vercel e enviar o token de login
-    async function fetchApi(endpoint, body) {
+    async function fetchApi(endpoint, method = 'POST', body = null) {
       const user = auth.currentUser;
       if (!user) {
         mostrarStatus('Usuário não logado.', 'error');
         throw new Error('Usuário não logado.');
       }
   
-      // Pega o token de autenticação do Firebase
       const token = await user.getIdToken();
   
-      const res = await fetch(endpoint, {
-        method: 'POST',
+      const options = {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`, // Envia o token para o backend
         },
-        body: JSON.stringify(body),
-      });
+      };
   
+      if (method === 'POST' && body) {
+        options.body = JSON.stringify(body);
+      }
+      
+      // Adiciona o token na URL para requisições GET
+      let url = endpoint;
+      if (method === 'GET') {
+        url += `?token=${token}`;
+      }
+  
+      const res = await fetch(url, options);
       const data = await res.json();
   
       if (!res.ok) {
-        // Se a API retornar um erro (ex: "Estoque insuficiente")
         throw new Error(data.message || 'Erro desconhecido na API.');
       }
-  
       return data;
     }
   
-    // --- 1. FORMULÁRIO PDV (ATUALIZADO) ---
+    // --- 1. FORMULÁRIO PDV (OK) ---
     function configurarFormularioPDV() {
       form.addEventListener('submit', (e) => e.preventDefault());
       btnEntrada.addEventListener('click', () => handleRegistro('entrada'));
@@ -99,8 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
       mostrarStatus('Registrando...', 'loading');
   
       try {
-        // Chama nossa nova API via fetch
-        const resultado = await fetchApi('/api/registrarMovimentacao', {
+        const resultado = await fetchApi('/api/registrarMovimentacao', 'POST', {
           nomeItem: nomeItem,
           quantidade: Number(quantidade),
           tipo: tipo,
@@ -108,11 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
         mostrarStatus(resultado.message, 'success');
         form.reset();
-  
-        // **IMPORTANTE**: Como nosso dashboard em tempo real AINDA é do Firestore
-        // precisamos atualizar o Firestore também, ou migrar o dashboard.
-        // Por enquanto, vamos recarregar os dados manualmente após o sucesso.
-        carregarDashboardTempoReal(); // Força a recarga
+        
+        // Força a recarga do dashboard após o sucesso
+        carregarDashboardTempoReal(); 
   
       } catch (error) {
         console.error('Erro na movimentação:', error);
@@ -134,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   
-    // --- 2. AUTOCOMPLETE (ATUALIZADO) ---
+    // --- 2. AUTOCOMPLETE (OK) ---
     let autocompleteTimer;
     function configurarAutocomplete() {
       nomeItemInput.addEventListener('input', () => {
@@ -145,10 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
             autocompleteDropdown.innerHTML = '';
             return;
           }
-  
           try {
-            // Chama nossa nova API via fetch
-            const resultados = await fetchApi('/api/buscarItemsAutocomplete', {
+            const resultados = await fetchApi('/api/buscarItemsAutocomplete', 'POST', {
               query: query,
             });
             renderizarAutocomplete(resultados);
@@ -186,117 +185,101 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   
-    // --- 3. DASHBOARD EM TEMPO REAL ---
-    // !! ATENÇÃO !!
-    // Este código ainda está lendo do FIRESTORE (seu banco antigo).
-    // O ideal seria migrar isso para o MongoDB também, mas é mais complexo.
-    // Por enquanto, o dashboard só vai atualizar DEPOIS que você registrar
-    // um item, porque chamamos carregarDashboardTempoReal() manualmente.
-    function carregarDashboardTempoReal() {
-      // Alertas de Estoque Baixo (do FIRESTORE)
-      db.collection('items')
-        .where('estoqueAtual', '<=', 5)
-        .orderBy('estoqueAtual', 'asc')
-        .get() // Trocado de onSnapshot para .get() para ser manual
-        .then((snapshot) => {
-          dashboardAlertas.innerHTML = '';
-          if (snapshot.empty) {
-            dashboardAlertas.innerHTML = `<p class="sem-alerta">✔ Nenhum item com estoque baixo.</p>`;
-            return;
-          }
-          snapshot.forEach((doc) => {
-            // ... (código do alerta) ...
-            const item = doc.data();
+    // --- 3. DASHBOARD EM TEMPO REAL (MIGRAÇÃO COMPLETA) ---
+    async function carregarDashboardTempoReal() {
+      dashboardAlertas.innerHTML = '<p class="loading-placeholder">Carregando alertas...</p>';
+      dashboardHistorico.innerHTML = '<p class="loading-placeholder">Carregando histórico...</p>';
+  
+      try {
+        const data = await fetchApi('/api/getDashboardData', 'GET');
+        
+        // Renderizar Alertas
+        dashboardAlertas.innerHTML = '';
+        if (!data.alertas || data.alertas.length === 0) {
+          dashboardAlertas.innerHTML = `<p class="sem-alerta">✔ Nenhum item com estoque baixo.</p>`;
+        } else {
+          data.alertas.forEach(item => {
             const div = document.createElement("div");
             div.className = "alerta-item";
             div.innerHTML = `<span>${item.nome}</span><span class="estoque">${item.estoqueAtual}</span>`;
             dashboardAlertas.appendChild(div);
           });
-        })
-        .catch((error) => console.error('Erro ao buscar alertas:', error));
+        }
   
-      // Últimas Movimentações (do FIRESTORE)
-      db.collection('movimentacoes')
-        .orderBy('data', 'desc')
-        .limit(10)
-        .get() // Trocado de onSnapshot para .get()
-        .then((snapshot) => {
-          dashboardHistorico.innerHTML = '';
-          if (snapshot.empty) {
-            dashboardHistorico.innerHTML = `<p class="loading-placeholder">Nenhuma movimentação.</p>`;
-            return;
-          }
-          snapshot.forEach((doc) => {
-            dashboardHistorico.appendChild(renderizarItemHistorico(doc.data()));
+        // Renderizar Histórico
+        dashboardHistorico.innerHTML = '';
+        if (!data.historico || data.historico.length === 0) {
+          dashboardHistorico.innerHTML = `<p class="loading-placeholder">Nenhuma movimentação.</p>`;
+        } else {
+          data.historico.forEach(mov => {
+            dashboardHistorico.appendChild(renderizarItemHistorico(mov));
           });
-        })
-        .catch((error) => console.error('Erro ao buscar histórico:', error));
+        }
+  
+      } catch (error) {
+        console.error("Erro ao carregar dashboard:", error);
+        dashboardAlertas.innerHTML = '<p class="loading-placeholder" style="color: red;">Erro ao carregar alertas.</p>';
+        dashboardHistorico.innerHTML = '<p class="loading-placeholder" style="color: red;">Erro ao carregar histórico.</p>';
+      }
     }
-    
-    // (Função renderizarItemHistorico e Busca por Dia continuam iguais)
-    // ... (Cole o resto do seu app.js original aqui) ...
   
-      // Função helper para criar o HTML de um item de histórico
-      function renderizarItemHistorico(mov) {
-          const div = document.createElement("div");
-          div.className = `historico-item ${mov.tipo}`; // 'entrada' ou 'saida'
+    // Função helper para criar o HTML de um item de histórico
+    function renderizarItemHistorico(mov) {
+      const div = document.createElement("div");
+      div.className = `historico-item ${mov.tipo}`; // 'entrada' ou 'saida'
+      
+      const sinal = mov.tipo === "entrada" ? "+" : "-";
+      // Os dados do Mongo vêm como string ISO, então precisamos converter
+      const dataFormatada = new Date(mov.data).toLocaleString('pt-BR');
+  
+      div.innerHTML = `
+          <span class="nome">${mov.nomeItem}</span>
+          <span class="qtd">${sinal} ${mov.quantidade}</span>
+          <span class="estoque-audit">${mov.estoqueAnterior} ➔ ${mov.estoqueNovo}</span>
+          <span class="data">${dataFormatada}</span>
+      `;
+      return div;
+    }
+  
+    // --- 4. BUSCA POR DIA (MIGRAÇÃO COMPLETA) ---
+    function configurarBuscaPorDia() {
+      btnBuscar.addEventListener("click", async () => {
+        const dataQuery = buscaDataInput.value;
+        if (!dataQuery) {
+          alert("Por favor, selecione uma data.");
+          return;
+        }
+  
+        // Converte a data (ex: "2025-10-30") para Strings ISO 8601
+        const dataInicioISO = dataQuery + "T00:00:00.000Z";
+        const dataFimISO = dataQuery + "T23:59:59.999Z";
+  
+        try {
+          const resultados = await fetchApi('/api/buscarPorData', 'POST', {
+            dataInicioISO,
+            dataFimISO
+          });
           
-          const sinal = mov.tipo === "entrada" ? "+" : "-";
-          const dataFormatada = mov.data ? mov.data.toDate().toLocaleString('pt-BR') : 'processando...';
+          buscaResultados.classList.remove("hidden");
+          buscaResultadosLista.innerHTML = "";
+          
+          if (!resultados || resultados.length === 0) {
+            buscaResultadosLista.innerHTML = `<p class="loading-placeholder">Nenhum resultado.</p>`;
+          } else {
+            resultados.forEach(mov => {
+              buscaResultadosLista.appendChild(renderizarItemHistorico(mov));
+            });
+          }
+        } catch (error) {
+          console.error("Erro na busca por data:", error);
+          buscaResultadosLista.innerHTML = `<p class="loading-placeholder" style="color: red;">Erro ao buscar dados.</p>`;
+        }
+      });
   
-          div.innerHTML = `
-              <span class="nome">${mov.nomeItem}</span>
-              <span class="qtd">${sinal} ${mov.quantidade}</span>
-              <span class="estoque-audit">${mov.estoqueAnterior} ➔ ${mov.estoqueNovo}</span>
-              <span class="data">${dataFormatada}</span>
-          `;
-          return div;
-      }
-  
-      // --- 4. BUSCA POR DIA (RELATÓRIOS) ---
-      function configurarBuscaPorDia() {
-          btnBuscar.addEventListener("click", async () => {
-              const dataQuery = buscaDataInput.value;
-              if (!dataQuery) {
-                  alert("Por favor, selecione uma data.");
-                  return;
-              }
-  
-              const dataInicio = new Date(dataQuery + "T00:00:00");
-              const dataFim = new Date(dataQuery + "T23:59:59");
-  
-              const timestampInicio = firebase.firestore.Timestamp.fromDate(dataInicio);
-              const timestampFim = firebase.firestore.Timestamp.fromDate(dataFim);
-  
-              try {
-                  const snapshot = await db.collection("movimentacoes")
-                      .where("data", ">=", timestampInicio)
-                      .where("data", "<=", timestampFim)
-                      .orderBy("data", "desc")
-                      .get();
-                  
-                  buscaResultados.classList.remove("hidden");
-                  buscaResultadosLista.innerHTML = "";
-                  
-                  if (snapshot.empty) {
-                      buscaResultadosLista.innerHTML = `<p class="loading-placeholder">Nenhum resultado.</p>`;
-                  } else {
-                      snapshot.forEach(doc => {
-                          buscaResultadosLista.appendChild(renderizarItemHistorico(doc.data()));
-                      });
-                  }
-  
-              } catch (error) {
-                  console.error("Erro na busca por data:", error);
-                  buscaResultadosLista.innerHTML = `<p class="loading-placeholder" style="color: red;">Erro ao buscar dados.</p>`;
-              }
-          });
-  
-          btnLimparBusca.addEventListener("click", () => {
-              buscaResultados.classList.add("hidden");
-              buscaResultadosLista.innerHTML = "";
-              buscaDataInput.value = "";
-          });
-      }
-  
+      btnLimparBusca.addEventListener("click", () => {
+        buscaResultados.classList.add("hidden");
+        buscaResultadosLista.innerHTML = "";
+        buscaDataInput.value = "";
+      });
+    }
   }); // Fim do DOMContentLoaded

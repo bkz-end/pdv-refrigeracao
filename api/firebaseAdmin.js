@@ -1,12 +1,5 @@
-// Precisamos das credenciais que o Firebase usa.
-// Vá no "Console do Firebase" -> Engrenagem ⚙ -> Configurações do Projeto
-// -> Contas de Serviço -> Gerar nova chave privada.
-// Isso vai baixar um arquivo JSON. Copie o conteúdo dele.
-// NÃO COLOQUE O CONTEÚDO AQUI. Vamos colocar no Vercel depois.
+import admin from 'firebase-admin';
 
-const admin = require('firebase-admin');
-
-// Só inicializa o app se ele não foi inicializado ainda
 if (!admin.apps.length) {
   try {
     admin.initializeApp({
@@ -19,21 +12,22 @@ if (!admin.apps.length) {
   }
 }
 
-// Helper para verificar o token de login em cada requisição
 export async function verificarLogin(req) {
-  if (!req.headers.authorization) {
-    throw new Error('Nenhum token de autorização fornecido.');
-  }
+  let token;
   
-  // Extrai o token "Bearer ..."
-  const token = req.headers.authorization.split(' ')[1];
-  if (!token) {
-     throw new Error('Token mal formatado.');
+  if (req.headers.authorization) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.query.token) {
+    // Adiciona verificação via query param para GET
+    token = req.query.token;
   }
 
-  // Verifica se o token é válido
+  if (!token) {
+     throw new Error('Token de autorização não fornecido.');
+  }
+
   const decodedToken = await admin.auth().verifyIdToken(token);
-  return decodedToken; // Retorna os dados do usuário logado
+  return decodedToken;
 }
 
 export default admin;
