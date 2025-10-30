@@ -47,7 +47,6 @@ body {
     width: auto;
     height: auto;
     object-fit: contain; /* Esta é a mágica! */
-    /* Sua logo de qualquer tamanho vai caber aqui sem distorcer */
 }
 /* --- Fim do CSS da Logo --- */
 
@@ -220,10 +219,16 @@ body {
 }
 .sugestao-item span:first-child {
     font-weight: 600;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .sugestao-item span:last-child {
     color: #aaa;
     font-size: 0.9rem;
+    flex-shrink: 0; /* Não encolhe */
+    padding-left: 10px;
 }
 .sugestao-item:hover span:last-child {
     color: #e0e0e0;
@@ -261,13 +266,14 @@ body {
 }
 
 
-/* Histórico */
+/* Histórico (ATUALIZADO COM PREÇO) */
 .historico-item {
     padding: 15px;
     border-bottom: 1px solid #2a2a2a;
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 20px;
+    /* MUDANÇA AQUI: 4 colunas (Item, Qtd, Preço, Auditoria) */
+    grid-template-columns: 1fr auto auto auto; 
+    gap: 15px;
     align-items: center;
     font-size: 0.95rem;
 }
@@ -291,6 +297,22 @@ body {
     color: #ef9a9a;
     background-color: rgba(211, 47, 47, 0.2);
 }
+
+/* NOVO BLOCO DE PREÇO */
+.historico-item .preco { 
+  font-weight: 500;
+  color: #0277bd; /* Azul para o preço */
+  text-align: right;
+  font-size: 0.9rem;
+}
+.historico-item.entrada .preco {
+  color: #81c784; /* Verde se for entrada */
+}
+.historico-item.saida .preco {
+  color: #ef9a9a; /* Vermelho se for saída */
+}
+/* FIM DO NOVO BLOCO */
+
 .historico-item .estoque-audit {
     color: #aaa;
     font-size: 0.9rem;

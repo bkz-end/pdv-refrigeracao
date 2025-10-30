@@ -1,20 +1,16 @@
 import mongoose from 'mongoose';
 
-// Pegue sua String de Conexão do Bloco de Notas!
-// NÃO COLOQUE A STRING AQUI. Vamos colocar no Vercel.
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
   throw new Error('MONGODB_URI não definida nas variáveis de ambiente');
 }
 
-// Cache da conexão (para não reconectar toda hora)
 let cached = global.mongoose;
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-// Função de conexão
 export async function connectToDatabase() {
   if (cached.conn) {
     return cached.conn;
@@ -33,23 +29,25 @@ export async function connectToDatabase() {
 
 // --- NOSSOS MODELOS DE BANCO DE DADOS ---
 
-// 1. Modelo de Item (para estoque e autocomplete)
+// 1. Modelo de Item (ATUALIZADO)
 const ItemSchema = new mongoose.Schema({
   nome: { type: String, required: true },
   nomeLowerCase: { type: String, required: true, unique: true, index: true },
   estoqueAtual: { type: Number, default: 0 },
   estoqueMinimo: { type: Number, default: 5 },
+  precoCusto: { type: Number, default: 0 }, // <-- NOVO
   ultimaModificacao: { type: Date, default: Date.now },
 });
-// Evita erro de recriação do modelo
 export const Item = mongoose.models.Item || mongoose.model('Item', ItemSchema);
 
 
-// 2. Modelo de Movimentação (para o histórico)
+// 2. Modelo de Movimentação (ATUALIZADO)
 const MovimentacaoSchema = new mongoose.Schema({
   tipo: { type: String, required: true, enum: ['entrada', 'saida'] },
   nomeItem: { type: String, required: true },
   quantidade: { type: Number, required: true },
+  precoUnitario: { type: Number, default: 0 }, // <-- NOVO
+  precoTotal: { type: Number, default: 0 }, // <-- NOVO
   data: { type: Date, default: Date.now },
   estoqueAnterior: { type: Number, required: true },
   estoqueNovo: { type: Number, required: true },

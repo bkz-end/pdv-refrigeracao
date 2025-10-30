@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     const regex = new RegExp(`^${query}`, 'i'); // 'i' = case-insensitive
     const items = await Item.find({ nomeLowerCase: regex })
       .limit(7)
-      .select('nome estoqueAtual'); // Pega só os campos que precisamos
+      .select('nome estoqueAtual precoCusto'); // Pega os campos que precisamos
 
     res.status(200).json(items);
 

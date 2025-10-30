@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- INICIALIZAÇÃO E AUTENTICAÇÃO ---
     const auth = firebase.auth();
-    // const db = firebase.firestore(); // NÃO PRECISAMOS MAIS DO FIRESTORE!
   
     // Elementos do DOM
     const userEmailSpan = document.getElementById('user-email');
@@ -9,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('form-movimentacao');
     const nomeItemInput = document.getElementById('nome-item');
     const quantidadeInput = document.getElementById('quantidade');
+    const precoUnitarioInput = document.getElementById('preco-unitario'); // <-- NOVO
     const btnEntrada = document.getElementById('btn-entrada');
     const btnSaida = document.getElementById('btn-saida');
     const statusContainer = document.getElementById('status-container');
@@ -21,15 +21,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const buscaResultadosLista = document.getElementById('busca-resultados-lista');
     const btnLimparBusca = document.getElementById('btn-limpar-busca');
   
-    // --- GUARDA DE AUTENTICAÇÃO ---
+    // --- GUARDA DE AUTENTICAÇÃO (CORRIGIDO) ---
     auth.onAuthStateChanged((user) => {
       if (user) {
+        // Usuário está logado
         console.log('Admin logado:', user.email);
+        // Se estiver na tela de login, manda para o dashboard
+        if (window.location.pathname.includes('login.html')) {
+          window.location.href = '/index.html';
+        }
         userEmailSpan.textContent = user.email;
         iniciarDashboard();
       } else {
+        // Usuário não está logado
         console.log('Nenhum usuário logado. Redirecionando...');
-        window.location.href = '/login.html';
+        // Se NÃO estamos no login.html, redireciona para ele
+        if (!window.location.pathname.includes('login.html')) {
+           window.location.href = '/login.html';
+        }
       }
     });
   
@@ -38,14 +47,17 @@ document.addEventListener('DOMContentLoaded', () => {
       auth.signOut();
     });
   
+    // Só roda o dashboard se estivermos no index.html
     function iniciarDashboard() {
-      carregarDashboardTempoReal(); // Agora vai ler do MongoDB!
+      if(window.location.pathname.includes('login.html')) return;
+      
+      carregarDashboardTempoReal(); 
       configurarFormularioPDV();
       configurarAutocomplete();
       configurarBuscaPorDia();
     }
   
-    // --- NOVA FUNÇÃO HELPER DE FETCH (ELITE) ---
+    // --- FUNÇÃO HELPER DE FETCH (ELITE) ---
     async function fetchApi(endpoint, method = 'POST', body = null) {
       const user = auth.currentUser;
       if (!user) {
@@ -59,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         method: method,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Envia o token para o backend
+          Authorization: `Bearer ${token}`, 
         },
       };
   
@@ -67,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
         options.body = JSON.stringify(body);
       }
       
-      // Adiciona o token na URL para requisições GET
       let url = endpoint;
       if (method === 'GET') {
         url += `?token=${token}`;
@@ -82,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return data;
     }
   
-    // --- 1. FORMULÁRIO PDV (OK) ---
+    // --- 1. FORMULÁRIO PDV (ATUALIZADO COM PREÇO) ---
     function configurarFormularioPDV() {
       form.addEventListener('submit', (e) => e.preventDefault());
       btnEntrada.addEventListener('click', () => handleRegistro('entrada'));
@@ -92,9 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleRegistro(tipo) {
       const nomeItem = nomeItemInput.value;
       const quantidade = quantidadeInput.value;
+      const precoUnitario = precoUnitarioInput.value; // <-- NOVO
   
-      if (!nomeItem || !quantidade) {
-        mostrarStatus('Preencha o nome e a quantidade.', 'error');
+      if (!nomeItem || !quantidade || precoUnitario === '') {
+        mostrarStatus('Preencha nome, quantidade e preço.', 'error');
         return;
       }
   
@@ -103,16 +115,17 @@ document.addEventListener('DOMContentLoaded', () => {
       mostrarStatus('Registrando...', 'loading');
   
       try {
+        // Envia o preço para a API
         const resultado = await fetchApi('/api/registrarMovimentacao', 'POST', {
           nomeItem: nomeItem,
           quantidade: Number(quantidade),
           tipo: tipo,
+          precoUnitario: Number(precoUnitario) // <-- NOVO
         });
   
         mostrarStatus(resultado.message, 'success');
         form.reset();
         
-        // Força a recarga do dashboard após o sucesso
         carregarDashboardTempoReal(); 
   
       } catch (error) {
@@ -135,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   
-    // --- 2. AUTOCOMPLETE (OK) ---
+    // --- 2. AUTOCOMPLETE (ATUALIZADO COM PREÇO) ---
     let autocompleteTimer;
     function configurarAutocomplete() {
       nomeItemInput.addEventListener('input', () => {
@@ -147,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
           try {
+            // O autocomplete agora mostra o preço de custo!
             const resultados = await fetchApi('/api/buscarItemsAutocomplete', 'POST', {
               query: query,
             });
@@ -173,19 +187,25 @@ document.addEventListener('DOMContentLoaded', () => {
       items.forEach((item) => {
         const div = document.createElement('div');
         div.className = 'sugestao-item';
+        // Formata o preço de custo
+        const precoCustoFormatado = (item.precoCusto || 0).toLocaleString('pt-BR', {
+           style: 'currency', currency: 'BRL'
+        });
         div.innerHTML = `
           <span>${item.nome}</span>
-          <span>[Estoque: ${item.estoqueAtual}]</span>
+          <span>[Custo: ${precoCustoFormatado}] [Est: ${item.estoqueAtual}]</span>
         `;
         div.addEventListener('click', () => {
           nomeItemInput.value = item.nome;
+          // Ao clicar, preenche o preço de entrada/saída
+          precoUnitarioInput.value = item.precoCusto || 0; 
           autocompleteDropdown.innerHTML = '';
         });
         autocompleteDropdown.appendChild(div);
       });
     }
   
-    // --- 3. DASHBOARD EM TEMPO REAL (MIGRAÇÃO COMPLETA) ---
+    // --- 3. DASHBOARD EM TEMPO REAL (OK) ---
     async function carregarDashboardTempoReal() {
       dashboardAlertas.innerHTML = '<p class="loading-placeholder">Carregando alertas...</p>';
       dashboardHistorico.innerHTML = '<p class="loading-placeholder">Carregando histórico...</p>';
@@ -223,25 +243,31 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   
-    // Função helper para criar o HTML de um item de histórico
+    // Função helper para criar o HTML de um item de histórico (ATUALIZADA COM PREÇO)
     function renderizarItemHistorico(mov) {
       const div = document.createElement("div");
-      div.className = `historico-item ${mov.tipo}`; // 'entrada' ou 'saida'
+      div.className = `historico-item ${mov.tipo}`; 
       
       const sinal = mov.tipo === "entrada" ? "+" : "-";
-      // Os dados do Mongo vêm como string ISO, então precisamos converter
       const dataFormatada = new Date(mov.data).toLocaleString('pt-BR');
+      
+      // Formata o preço para R$
+      const precoTotalFormatado = (mov.precoTotal || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
   
+      // Atualiza o HTML para incluir o preço
       div.innerHTML = `
           <span class="nome">${mov.nomeItem}</span>
           <span class="qtd">${sinal} ${mov.quantidade}</span>
-          <span class="estoque-audit">${mov.estoqueAnterior} ➔ ${mov.estoqueNovo}</span>
+          <span class="preco">${precoTotalFormatado}</span> <span class="estoque-audit">${mov.estoqueAnterior} ➔ ${mov.estoqueNovo}</span>
           <span class="data">${dataFormatada}</span>
       `;
       return div;
     }
   
-    // --- 4. BUSCA POR DIA (MIGRAÇÃO COMPLETA) ---
+    // --- 4. BUSCA POR DIA (OK) ---
     function configurarBuscaPorDia() {
       btnBuscar.addEventListener("click", async () => {
         const dataQuery = buscaDataInput.value;
@@ -250,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
   
-        // Converte a data (ex: "2025-10-30") para Strings ISO 8601
         const dataInicioISO = dataQuery + "T00:00:00.000Z";
         const dataFimISO = dataQuery + "T23:59:59.999Z";
   
